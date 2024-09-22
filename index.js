@@ -187,6 +187,9 @@ async function captureBookMyShow(url) {
       }
 
       // Click the element with the specified XPath
+
+      //div[2] is saturday
+      //div[3] is sunday
       const elementXPath =
         "/html/body/div[2]/div/div/div[3]/div/div[1]/div[2]/div/div[1]/ul/li";
       // "/html/body/div[2]/div/div/div[3]/div/div[1]/div[3]/div/div[1]/ul/li";
