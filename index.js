@@ -188,9 +188,9 @@ async function captureBookMyShow(url) {
 
       // Click the element with the specified XPath
       const elementXPath =
-        "/html/body/div[2]/div/div/div[3]/div/div[1]/div[2]/div/div[1]/ul/li[1]";
-
+        "/html/body/div[2]/div/div/div[3]/div/div[1]/div[2]/div/div[1]/ul/li";
       // "/html/body/div[2]/div/div/div[3]/div/div[1]/div[3]/div/div[1]/ul/li";
+
       try {
         const element = await page.waitForSelector(
           `::-p-xpath(${elementXPath})`,
