@@ -4,6 +4,7 @@ import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
 import RecaptchaPlugin from "puppeteer-extra-plugin-recaptcha";
 import path from "path";
 import readline from "readline";
+import fs from "fs/promises";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
@@ -18,11 +19,37 @@ puppeteer.use(
 );
 
 const USER_DATA_DIR = path.join(process.cwd(), "user_data");
+const LOCAL_STATE_FILE = path.join(USER_DATA_DIR, "Local State");
+const COOKIES_FILE = path.join(USER_DATA_DIR, "cookies.json");
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
+
+async function saveCookies(page) {
+  const cookies = await page.cookies();
+  await fs.promises.writeFile(COOKIES_FILE, JSON.stringify(cookies, null, 2));
+  console.log("Cookies saved successfully");
+}
+
+async function isLoggedIn() {
+  try {
+    // Check if the Local State file exists
+    await fs.access(LOCAL_STATE_FILE);
+
+    // Read the Local State file
+    const localStateData = await fs.readFile(LOCAL_STATE_FILE, "utf8");
+    const localState = JSON.parse(localStateData);
+
+    // Check for login information in the Local State
+    // This is a simplified check and may need adjustment based on BookMyShow's specific storage method
+    return !!localState.profile && !!localState.profile.info_cache;
+  } catch (error) {
+    console.error("Error checking login state:", error.message);
+    return false;
+  }
+}
 
 async function initialLogin(page) {
   console.log("Not logged in. Proceeding with login process...");
@@ -30,7 +57,7 @@ async function initialLogin(page) {
   try {
     await page.waitForSelector(
       '#modal-root > div > div > div > div:nth-child(3) > ul > li:nth-child(1) > div > div > img[alt="MUMBAI"]',
-      { visible: true, timeout: 5000 }
+      { visible: true, timeout: 10000 }
     );
     await page.click(
       '#modal-root > div > div > div > div:nth-child(3) > ul > li:nth-child(1) > div > div > img[alt="MUMBAI"]'
@@ -47,7 +74,7 @@ async function initialLogin(page) {
   // Wait for the book button to be visible and click it
   await page.waitForSelector("#synopsis-book-button", {
     visible: true,
-    timeout: 5000,
+    timeout: 10000,
   });
   await page.click("#synopsis-book-button");
 
@@ -59,7 +86,7 @@ async function initialLogin(page) {
 
   // Wait for the submit button to be visible and clickable using XPath
   const submitButtonXPath =
-    "/html/body/div[11]/div/div/div/div/div[2]/form/div[2]/button";
+    "/html/body/div[3]/div/div/div/div/div[2]/form/div[2]/button";
   await page.waitForSelector(`::-p-xpath(${submitButtonXPath})`, {
     visible: true,
     timeout: 10000,
@@ -70,31 +97,32 @@ async function initialLogin(page) {
   console.log("Continue button clicked successfully");
 
   // Wait for OTP input to be visible
-  await page.waitForSelector('input[autocomplete="one-time-code"]', {
-    visible: true,
-    timeout: 60000,
-  });
-  console.log("OTP input field is visible. Waiting for OTP to be entered...");
+  // await page.waitForSelector('input[autocomplete="one-time-code"]', {
+  //   visible: true,
+  //   timeout: 60000,
+  // });
+  // console.log("OTP input field is visible. Waiting for OTP to be entered...");
 
   // Wait for OTP to be entered (all input fields filled)
-  await page.waitForFunction(
-    () => {
-      const inputs = document.querySelectorAll(
-        'input[autocomplete="one-time-code"]'
-      );
-      return Array.from(inputs).every((input) => input.value.length === 1);
-    },
-    { timeout: 300000 }
-  ); // 5 minutes timeout
+  // await page.waitForFunction(
+  //   () => {
+  //     const inputs = document.querySelectorAll(
+  //       'input[autocomplete="one-time-code"]'
+  //     );
+  //     return Array.from(inputs).every((input) => input.value.length === 1);
+  //   },
+  //   { timeout: 300000 }
+  // ); // 5 minutes timeout
 
-  console.log("OTP entered successfully");
+  // console.log("OTP entered successfully");
 
   // Click the submit button after OTP input
-  await page.click(
-    "#modal-root > div > div > div > div > div.sc-dh558f-6.ceEYmA > form > div.sc-dh558f-1.hwrPCy > button"
-  );
+  // await page.click(
+  //   "#modal-root > div > div > div > div > div.sc-dh558f-6.ceEYmA > form > div.sc-dh558f-1.hwrPCy > button"
+  // );
 
   console.log("Logged in successfully");
+  // await saveCookies(page);
 
   // Immediately try to click the book button after login
   await clickBookButton(page);
@@ -103,7 +131,7 @@ async function initialLogin(page) {
 async function clickBookButton(page) {
   try {
     await page.waitForSelector("#synopsis-book-button", {
-      visible: true,
+      // visible: true,
       timeout: 5000,
     });
     await page.click("#synopsis-book-button");
@@ -134,26 +162,17 @@ async function captureBookMyShow(url) {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
       );
 
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
 
-      // Check if we're already logged in
-      const isLoggedIn = await page.evaluate(() => {
-        return !document.querySelector("#mobileNo");
-      });
+      const loggedIn = await isLoggedIn();
 
-      if (!isLoggedIn) {
+      if (!loggedIn) {
+        console.log("Not logged in. Proceeding with login process...");
         await initialLogin(page);
       } else {
         console.log("Already logged in. Proceeding with booking...");
         await clickBookButton(page);
       }
-
-      // Remove the redundant click on synopsis-book-button
-      // await page.waitForSelector("#synopsis-book-button", {
-      //   timeout: 5000,
-      // });
-      // await page.click("#synopsis-book-button");
-      // console.log("Clicked synopsis-book-button");
 
       // Click the element with the specified XPath
       const elementXPath =
