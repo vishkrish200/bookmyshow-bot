@@ -133,7 +133,7 @@ async function clickBookButton(page) {
     "Attempting to click book button with faster refresh strategy..."
   );
   const startTime = Date.now();
-  const timeout = 60000; // 1 minute timeout
+  const timeout = 60000 * 10; // 1 minute timeout
   let buttonClicked = false;
 
   while (!buttonClicked && Date.now() - startTime < timeout) {
@@ -164,7 +164,7 @@ async function clickBookButton(page) {
     }
 
     // Reduce wait time to 500ms between refreshes
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
   }
 
   console.log("Failed to click the book button within the timeout period.");
@@ -210,7 +210,7 @@ async function captureBookMyShow(url) {
       //div[2] is saturday
       //div[3] is sunday
       const elementXPath =
-        "/html/body/div[2]/div/div/div[3]/div/div[1]/div[2]/div/div[1]/ul/li";
+        "/html/body/div[2]/div/div/div[3]/div/div[1]/div[4]/div[2]/div/ul/li";
       // "/html/body/div[2]/div/div/div[3]/div/div[1]/div[3]/div/div[1]/ul/li";
 
       try {
@@ -287,7 +287,7 @@ async function captureBookMyShow(url) {
 (async () => {
   try {
     const url =
-      "https://in.bookmyshow.com/events/lollapalooza-india-2025/ET00409511";
+      "https://in.bookmyshow.com/events/coldplay-music-of-the-spheres-world-tour/ET00412466";
     await captureBookMyShow(url);
   } catch (error) {
     console.error("Unhandled error in main function:", error);
