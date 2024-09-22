@@ -1,11 +1,21 @@
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
+import RecaptchaPlugin from "puppeteer-extra-plugin-recaptcha";
 import path from "path";
 import readline from "readline";
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
+puppeteer.use(
+  RecaptchaPlugin({
+    provider: {
+      id: "2captcha",
+      token: "2276582296beebd15379cd705bedb343", // REPLACE THIS WITH YOUR OWN 2CAPTCHA API KEY ⚡
+    },
+    visualFeedback: true, // colorize reCAPTCHAs (violet = detected, green = solved)
+  })
+);
 
 const USER_DATA_DIR = path.join(process.cwd(), "user_data");
 
@@ -85,6 +95,22 @@ async function initialLogin(page) {
   );
 
   console.log("Logged in successfully");
+
+  // Immediately try to click the book button after login
+  await clickBookButton(page);
+}
+
+async function clickBookButton(page) {
+  try {
+    await page.waitForSelector("#synopsis-book-button", {
+      visible: true,
+      timeout: 5000,
+    });
+    await page.click("#synopsis-book-button");
+    console.log("Clicked synopsis-book-button immediately after login");
+  } catch (error) {
+    console.error("Failed to click synopsis-book-button:", error.message);
+  }
 }
 
 async function captureBookMyShow(url) {
@@ -119,28 +145,25 @@ async function captureBookMyShow(url) {
         await initialLogin(page);
       } else {
         console.log("Already logged in. Proceeding with booking...");
+        await clickBookButton(page);
       }
 
-      // Click the synopsis-book-button i.e Main red book button
-      await page.waitForSelector("#synopsis-book-button", {
-        visible: true,
-        timeout: 10000,
-      });
-      await page.click("#synopsis-book-button");
-      console.log("Clicked synopsis-book-button");
+      // Remove the redundant click on synopsis-book-button
+      // await page.waitForSelector("#synopsis-book-button", {
+      //   timeout: 5000,
+      // });
+      // await page.click("#synopsis-book-button");
+      // console.log("Clicked synopsis-book-button");
 
-      // Wait for a moment
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Click the element with the specified XPath i.e Select the first show
+      // Click the element with the specified XPath
       const elementXPath =
         "/html/body/div[2]/div/div/div[3]/div/div[1]/div[3]/div/div[1]/ul/li";
       try {
         const element = await page.waitForSelector(
           `::-p-xpath(${elementXPath})`,
           {
-            visible: true,
-            timeout: 10000,
+            // visible: true,
+            timeout: 5000,
           }
         );
         if (element) {
@@ -153,11 +176,11 @@ async function captureBookMyShow(url) {
         console.error("Failed to click element with XPath:", error.message);
       }
 
-      // Click the booking-continue-button i.e click continue button after selecting the show
+      // Click the booking-continue-button
       try {
         await page.waitForSelector("#booking-continue-button", {
-          visible: true,
-          timeout: 10000,
+          // visible: true,
+          timeout: 5000,
         });
         await page.click("#booking-continue-button");
         console.log("Clicked booking-continue-button");
