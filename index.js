@@ -129,13 +129,23 @@ async function initialLogin(page) {
 }
 
 async function clickBookButton(page) {
+  console.log("Attempting to click book button immediately...");
   try {
-    await page.waitForSelector("#synopsis-book-button", {
-      // visible: true,
-      timeout: 5000,
+    // Set up a navigation promise before clicking the button
+    const navigationPromise = page
+      .waitForNavigation({ timeout: 5000 })
+      .catch(() => {});
+
+    await page.evaluate(() => {
+      const button = document.querySelector("#synopsis-book-button");
+      if (button && !button.disabled) {
+        button.click();
+      }
     });
-    await page.click("#synopsis-book-button");
-    console.log("Clicked synopsis-book-button immediately after login");
+
+    // Wait for the navigation to complete
+    await navigationPromise;
+    console.log("Book button clicked and navigation completed or timed out");
   } catch (error) {
     console.error("Failed to click synopsis-book-button:", error.message);
   }
@@ -162,7 +172,10 @@ async function captureBookMyShow(url) {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
       );
 
-      await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+
+      // Attempt to click the book button immediately after page load
+      await clickBookButton(page);
 
       const loggedIn = await isLoggedIn();
 
@@ -170,13 +183,14 @@ async function captureBookMyShow(url) {
         console.log("Not logged in. Proceeding with login process...");
         await initialLogin(page);
       } else {
-        console.log("Already logged in. Proceeding with booking...");
-        await clickBookButton(page);
+        console.log("Already logged in. Book button should have been clicked.");
       }
 
       // Click the element with the specified XPath
       const elementXPath =
-        "/html/body/div[2]/div/div/div[3]/div/div[1]/div[3]/div/div[1]/ul/li";
+        "/html/body/div[2]/div/div/div[3]/div/div[1]/div[2]/div/div[1]/ul/li[1]";
+
+      // "/html/body/div[2]/div/div/div[3]/div/div[1]/div[3]/div/div[1]/ul/li";
       try {
         const element = await page.waitForSelector(
           `::-p-xpath(${elementXPath})`,
