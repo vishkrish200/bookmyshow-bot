@@ -129,26 +129,45 @@ async function initialLogin(page) {
 }
 
 async function clickBookButton(page) {
-  console.log("Attempting to click book button immediately...");
-  try {
-    // Set up a navigation promise before clicking the button
-    const navigationPromise = page
-      .waitForNavigation({ timeout: 5000 })
-      .catch(() => {});
+  console.log(
+    "Attempting to click book button with faster refresh strategy..."
+  );
+  const startTime = Date.now();
+  const timeout = 60000; // 1 minute timeout
+  let buttonClicked = false;
 
-    await page.evaluate(() => {
-      const button = document.querySelector("#synopsis-book-button");
-      if (button && !button.disabled) {
-        button.click();
+  while (!buttonClicked && Date.now() - startTime < timeout) {
+    try {
+      // Refresh the page content without waiting for all resources to load
+      await page.evaluate(() => {
+        window.location.href = window.location.href;
+      });
+
+      // Wait for the DOM to be ready, but don't wait for all resources
+      await page.waitForNavigation({ waitUntil: "domcontentloaded" });
+
+      buttonClicked = await page.evaluate(() => {
+        const button = document.querySelector("#synopsis-book-button");
+        if (button && !button.disabled) {
+          button.click();
+          return true;
+        }
+        return false;
+      });
+
+      if (buttonClicked) {
+        console.log("Book button clicked successfully!");
+        return;
       }
-    });
+    } catch (error) {
+      console.error("Error during page refresh:", error.message);
+    }
 
-    // Wait for the navigation to complete
-    await navigationPromise;
-    console.log("Book button clicked and navigation completed or timed out");
-  } catch (error) {
-    console.error("Failed to click synopsis-book-button:", error.message);
+    // Reduce wait time to 500ms between refreshes
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
+
+  console.log("Failed to click the book button within the timeout period.");
 }
 
 async function captureBookMyShow(url) {
@@ -174,7 +193,7 @@ async function captureBookMyShow(url) {
 
       await page.goto(url, { waitUntil: "domcontentloaded" });
 
-      // Attempt to click the book button immediately after page load
+      // Replace the immediate click attempt with the new refreshing strategy
       await clickBookButton(page);
 
       const loggedIn = await isLoggedIn();
