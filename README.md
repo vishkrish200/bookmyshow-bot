@@ -1,4 +1,3 @@
-```md
 # 🎫 Coldplay Ticket Booking Bot
 
 An automated Node.js bot built using Puppeteer to successfully book Coldplay concert tickets in India. The bot automatically refreshes the ticket booking page, detects when the "Book" button becomes available, and completes the booking process with minimal input.
@@ -31,4 +30,3 @@ Contributions are welcome! Please feel free to submit a pull request or file an 
 ---
 
 Feel free to add more features and customize the bot to fit your use case. Let's get those Coldplay tickets! 🎶
-```
