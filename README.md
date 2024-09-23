@@ -1,5 +1,3 @@
-Here’s the finalized `README.md` that you can copy and paste directly:
-
 ```md
 # 🎫 Coldplay Ticket Booking Bot
 
